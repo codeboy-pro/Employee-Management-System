@@ -1,4 +1,7 @@
-localStorage.clear();
+// Don't clear localStorage on every import - this was wiping saved data!
+// localStorage.clear();
+
+import { setSecureItem, getSecureItem } from './secureStorage';
 
 const employees = [
   {
@@ -233,16 +236,45 @@ const admin = [
 ];
 
 export const setLocalStorage = () => {
-  localStorage.setItem('employees', JSON.stringify(employees));
-  localStorage.setItem('admin', JSON.stringify(admin));
-
+  // Check if data exists and if it's in old format (not encrypted)
+  const existingEmployees = localStorage.getItem('employees');
+  const existingAdmin = localStorage.getItem('admin');
+  
+  // If data exists but not encrypted, remove it so we can re-encrypt
+  if (existingEmployees && !existingEmployees.startsWith('__ENC__')) {
+    localStorage.removeItem('employees');
+  }
+  if (existingAdmin && !existingAdmin.startsWith('__ENC__')) {
+    localStorage.removeItem('admin');
+  }
+  
+  // Only set initial data if no data exists in localStorage
+  if (!localStorage.getItem('employees')) {
+    setSecureItem('employees', employees);
+  }
+  if (!localStorage.getItem('admin')) {
+    setSecureItem('admin', admin);
+  }
 };
 
 export const getLocalStorage = () => {
-  const employees= JSON.parse(localStorage.getItem('employees'));
-  const admin= JSON.parse(localStorage.getItem('admin'));
+  const employees = getSecureItem('employees');
+  const admin = getSecureItem('admin');
  
-return {employees,admin};
+  return { employees, admin };
+};
 
+// Force re-encryption of all data (useful for migration)
+export const forceReEncryption = () => {
+  // Remove all existing data
+  localStorage.removeItem('employees');
+  localStorage.removeItem('admin');
+  localStorage.removeItem('loggedInUser');
+  
+  // Re-set with encryption
+  setSecureItem('employees', employees);
+  setSecureItem('admin', admin);
+  
+  console.log('✅ All data re-encrypted successfully');
 };
 
